@@ -6,8 +6,8 @@ After=docker.service
 [Service]
 Type=oneshot
 Environment=DOCKER_HOST=unix://%t/docker.sock
-EnvironmentFile=%h/.config/actual-budget-export/rclone.env
+EnvironmentFile=%h/.config/actual-budget-backup/rclone.env
 ExecStartPre=/usr/bin/test -n "${RCLONE_DESTINATION}"
 ExecStartPre=/usr/bin/mkdir -p %h/backups/actual-budget
-ExecStart=/usr/bin/docker run --rm --network actual-network --env-file %h/.config/actual-budget-export/backup.env -e BACKUP_DIR=/backups --mount type=bind,source=%h/backups/actual-budget,target=/backups actual-budget-export:local
+ExecStart=/usr/bin/docker run --rm --network actual-network --env-file %h/.config/actual-budget-backup/backup.env -e BACKUP_DIR=/backups --mount type=bind,source=%h/backups/actual-budget,target=/backups actual-budget-backup:local
 ExecStart=/usr/bin/rclone copy %h/backups/actual-budget "${RCLONE_DESTINATION}" --ignore-existing --verbose

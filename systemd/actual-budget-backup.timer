@@ -1,5 +1,5 @@
 [Unit]
-Description=Back up Actual Budget every 15 minutes
+Description=Schedule Actual Budget backups
 
 [Timer]
 OnCalendar=*-*-* *:00/15:00
