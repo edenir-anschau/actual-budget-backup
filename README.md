@@ -2,14 +2,14 @@
 
 ## 1. Prepare the prerequisites
 
-Install Docker, rclone, and systemd, and make the Actual Budget server accessible. This setup uses the user's rootless `docker.service` and the Docker network `actual-network`. Configure an rclone remote with write access to your chosen destination. Run the following commands from this project directory.
+Install Node.js 22 or newer, npm, rclone, and systemd, and make the Actual Budget server accessible from this machine. Configure an rclone remote with write access to your chosen destination. Run the following commands from this project directory. Docker is not required to run backups; the Actual server can remain hosted wherever it is today.
 
-## 2. Build the backup image
+## 2. Install the Node dependencies
 
-Build the image to export timestamped ZIP backups by directly calling the Actual API's `exportBudget()` method:
+Install the locked dependencies, including `@actual-app/api@26.10.0`, to export timestamped ZIP backups using the API's `exportBudget()` method:
 
 ```bash
-docker build -t actual-budget-backup:local .
+npm ci --omit=dev
 ```
 
 ## 3. Configure the Actual Budget credentials
@@ -25,12 +25,14 @@ chmod 600 "$HOME/.config/actual-budget-backup/backup.env" "$HOME/.config/actual-
 Edit `~/.config/actual-budget-backup/backup.env` and add your values without quotes or `export`. Add `ACTUAL_ENCRYPTION_PASSWORD` only for encrypted budgets:
 
 ```dotenv
-ACTUAL_SERVER_URL=http://actual-server:5006
+ACTUAL_SERVER_URL=http://127.0.0.1:5006
 ACTUAL_PASSWORD=your-server-password
 ACTUAL_SYNC_ID=your-sync-id
 ```
 
-If upgrading from the previous project name, copy your existing credentials and destination settings from the previous configuration directory into this new directory before continuing. Rebuild the image using the new name in step 2.
+Set `ACTUAL_SERVER_URL` to the address reachable from this machine. The example assumes the server is exposed locally on port 5006. A Docker network hostname such as `actual-server` usually cannot be resolved from the host; use the published host port or your server's normal URL instead.
+
+When migrating from Docker, retain your existing credentials and rclone settings, install the dependencies in step 2, update the server URL if necessary, and rerun the installer in step 5. It replaces the old units without deleting backups or Docker images. If upgrading from the previous project name, copy the configuration files into the directory above first.
 
 ## 4. Configure the rclone destination
 
@@ -60,7 +62,9 @@ For a daily backup at 20:00, use `BACKUP_SCHEDULE='*-*-* 20:00:00'`. Rerun the i
 
 If the initial backup fails, inspect the logs in step 6, fix the issue, and rerun the installer. A timer enabled by a previous installation remains enabled if this test fails.
 
-The units are installed in `~/.config/systemd/user/`. Runs do not overlap. `Persistent=true` catches up one missed run when the timer becomes active again. The computer must be on; user lingering must be enabled to run after logout. The service always uses `~/backups/actual-budget`, regardless of `BACKUP_HOST_DIR` or shell aliases.
+The units are installed in `~/.config/systemd/user/`. Runs do not overlap. `Persistent=true` catches up one missed run when the timer becomes active again. The computer must be on; user lingering must be enabled to run after logout. The service always uses `~/backups/actual-budget`, ignoring `BACKUP_DIR` in the configuration.
+
+The installer checks that Node can load the API, then records absolute paths to the current Node executable and project script. This supports Node installed through NVM without loading shell startup files. Keep the project and its `node_modules` directory in place. After moving the project or switching Node versions, rerun `npm ci --omit=dev` and the installer before removing the old Node installation. Dependency installation failures may require build tools for native modules; consult the npm error before installing additional packages.
 
 ## 6. Check the schedule and logs
 
@@ -84,11 +88,19 @@ Start the service to export a new ZIP and upload new files:
 systemctl --user start actual-budget-backup.service
 ```
 
-ZIP filenames contain the budget sync ID and a UTC timestamp. Files use permissions `600` and have no ZIP password. The container runs as root by default; rootless Docker maps this to the host user.
+ZIP filenames contain the budget sync ID and a UTC timestamp. Files use permissions `600` and have no ZIP password. Node runs as your user.
 
-## 8. Test a restore
+To export locally without systemd or an rclone upload, load the credentials through Node's environment-file support and run the script:
 
-Start an isolated Actual Budget server with a temporary data directory and a random localhost port:
+```bash
+node --env-file="$HOME/.config/actual-budget-backup/backup.env" backup.mjs
+```
+
+Direct execution defaults to `~/backups/actual-budget`; set `BACKUP_DIR` to choose another destination. `npm start` also runs the script when credentials are already present in the process environment.
+
+## 8. Test a restore (optional Docker example)
+
+Import a backup into an isolated Actual Budget server and compare accounts, balances, and transactions. If Docker is available, the following optional example starts a test server with a temporary data directory and a random localhost port. Docker is used only for this example, not for the backup routine:
 
 ```bash
 RESTORE_DATA_DIR=$(mktemp -d /tmp/actual-restore.XXXXXXXXXX)
@@ -117,7 +129,7 @@ Run the uninstaller to disable and stop the timer, stop the service, remove both
 sh ./uninstall-backup-systemd-timer.sh
 ```
 
-Configuration files, Docker images, and local and remote backups are preserved. Removing the service may interrupt an active backup. To pause scheduling without removing the units, use:
+Configuration files, Node dependencies, and local and remote backups are preserved. Removing the service may interrupt an active backup. To pause scheduling without removing the units, use:
 
 ```bash
 systemctl --user disable --now actual-budget-backup.timer

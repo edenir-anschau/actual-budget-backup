@@ -1,5 +1,5 @@
 import { mkdir, mkdtemp, open, rm } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
+import { homedir, tmpdir } from 'node:os';
 import path from 'node:path';
 
 async function main() {
@@ -8,7 +8,7 @@ async function main() {
     ACTUAL_PASSWORD: password,
     ACTUAL_SYNC_ID: syncId,
     ACTUAL_ENCRYPTION_PASSWORD: encryptionPassword,
-    BACKUP_DIR: backupDir = '/backups',
+    BACKUP_DIR: backupDir = path.join(homedir(), 'backups', 'actual-budget'),
   } = process.env;
 
   if (!serverURL || !password || !syncId) {

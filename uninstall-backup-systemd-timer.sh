@@ -13,4 +13,4 @@ if [ -f "$unit_dir/actual-budget-backup.service" ]; then
 fi
 rm -f "$unit_dir/actual-budget-backup.timer" "$unit_dir/actual-budget-backup.service"
 systemctl --user daemon-reload
-echo 'Backup timer and service removed. Configuration, images, and backups were preserved.'
+echo 'Backup timer and service removed. Configuration, Node dependencies, and backups were preserved.'

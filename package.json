@@ -1,0 +1,15 @@
+{
+  "name": "actual-budget-backup",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node backup.mjs"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "@actual-app/api": "26.10.0"
+  }
+}
