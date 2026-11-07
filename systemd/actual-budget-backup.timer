@@ -2,7 +2,7 @@
 Description=Schedule Actual Budget backups
 
 [Timer]
-OnCalendar=*-*-* *:00/15:00
+OnCalendar=*-*-* *:00/30:00
 Persistent=true
 AccuracySec=1s
 Unit=actual-budget-backup.service

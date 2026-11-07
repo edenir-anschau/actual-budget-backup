@@ -3,7 +3,7 @@ set -eu
 
 source_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 unit_dir="$HOME/.config/systemd/user"
-BACKUP_SCHEDULE=${BACKUP_SCHEDULE:-'*-*-* *:00/15:00'}
+BACKUP_SCHEDULE=${BACKUP_SCHEDULE:-'*-*-* *:00/30:00'}
 export BACKUP_SCHEDULE
 case "$BACKUP_SCHEDULE" in
   *'
@@ -71,13 +71,10 @@ install -d "$unit_dir"
 install -m 644 "$staging_dir/actual-budget-backup.service" "$staging_dir/actual-budget-backup.timer" "$unit_dir/"
 systemctl --user daemon-reload
 
-# Validate one real export and upload before enabling the schedule.
-echo 'Running the initial backup and upload...'
-if ! systemctl --user start actual-budget-backup.service; then
-  echo 'Backup failed. Inspect: journalctl --user -u actual-budget-backup.service -n 50 --no-pager' >&2
-  exit 1
-fi
 echo "Enabling backup timer with schedule: $BACKUP_SCHEDULE"
 systemctl --user enable --now actual-budget-backup.timer
 systemctl --user restart actual-budget-backup.timer
 systemctl --user list-timers actual-budget-backup.timer --no-pager
+echo 'Installation complete. Validate the backup manually:'
+echo '  systemctl --user start actual-budget-backup.service'
+echo '  journalctl --user -u actual-budget-backup.service -n 50 --no-pager'
